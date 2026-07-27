@@ -1,9 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { DashboardPage } from '../pages/Dashboard/DashboardPage';
-import { NewComplaintPage } from '../pages/NewComplaint/NewComplaintPage';
-import { ReviewComplaintPage } from '../pages/ReviewComplaint/ReviewComplaintPage';
-
+import LogCustomerComplaint from '../pages/NewComplaint/NewComplaintPage';
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -15,11 +13,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'complaints/new',
-        element: <NewComplaintPage />
-      },
-      {
-        path: 'complaints/review',
-        element: <ReviewComplaintPage />
+        element: <LogCustomerComplaint />
       }
     ]
   }

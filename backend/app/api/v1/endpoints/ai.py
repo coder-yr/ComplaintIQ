@@ -22,35 +22,67 @@ class AIResponseData(BaseModel):
     warnings: List[str]
     errors: List[str]
 
-@router.post("/analyze", response_model=StandardResponse[AIResponseData])
+from fastapi.responses import StreamingResponse
+import json
+
+@router.post("/analyze")
 async def analyze_complaint(request: AnalyzeRequest):
-    logger.info("Received request to analyze complaint.")
-    try:
-        initial_state = ComplaintWorkflowState(raw_text=request.raw_text)
-        
-        result = await complaint_pipeline.ainvoke(initial_state.model_dump())
-        
-        data = AIResponseData(
-            extracted_data=result.get("extracted_data"),
-            risk_assessment=result.get("risk_assessment"),
-            summary=result.get("summary", ""),
-            confidence_score=result.get("confidence_score", 0.0),
-            missing_fields=result.get("missing_fields", []),
-            warnings=result.get("warnings", []),
-            errors=result.get("errors", [])
-        )
-        
-        metadata = result.get("metadata", {})
-        logger.info(f"AI Pipeline completed. Latency: {metadata.get('latency', 0):.2f}s, Tokens: {metadata.get('total_tokens', 0)}")
-        
-        return StandardResponse(
-            success=True,
-            message="Analysis complete",
-            data=data
-        )
-    except Exception as e:
-        logger.error(f"Error in AI pipeline: {e}")
-        raise HTTPException(status_code=500, detail="An error occurred during AI analysis.")
+    logger.info("Received request to analyze complaint via SSE.")
+    
+    async def event_generator():
+        try:
+            initial_state = ComplaintWorkflowState(raw_text=request.raw_text)
+            
+            # 1. Send initial state
+            yield f"data: {json.dumps({'status': 'Uploading', 'message': 'Initializing...'})}\n\n"
+            
+            # The LangGraph stream yields states as each node completes
+            # Node order: parser -> cleaner -> extractor -> validator -> risk -> summary -> copilot
+            
+            node_status_map = {
+                "parser": {"status": "Cleaning Text", "message": "Parsing document..."},
+                "cleaner": {"status": "Extracting Fields", "message": "Cleaning text..."},
+                "extractor": {"status": "Validating", "message": "Extracting structured data..."},
+                "validator": {"status": "Assessing Risk", "message": "Validating fields..."},
+                "risk": {"status": "Generating Summary", "message": "Assessing risk..."},
+                "summary": {"status": "Preparing Copilot", "message": "Generating summary..."},
+                "copilot": {"status": "Completed", "message": "Copilot ready."}
+            }
+            
+            final_data = None
+            async for output in complaint_pipeline.astream(initial_state.model_dump(), stream_mode="updates"):
+                # output is a dict like {"node_name": {...state_updates...}}
+                for node_name, state_updates in output.items():
+                    if node_name in node_status_map:
+                        step_info = node_status_map[node_name]
+                        yield f"data: {json.dumps(step_info)}\n\n"
+                    
+                    if node_name == "copilot":
+                        # We reached the end, capture the final state
+                        final_data = state_updates
+            
+            # Send the final payload
+            if final_data:
+                response_payload = {
+                    "status": "Final",
+                    "data": {
+                        "extracted_data": final_data.get("extracted_data"),
+                        "risk_assessment": final_data.get("risk_assessment"),
+                        "summary": final_data.get("summary", ""),
+                        "confidence_score": final_data.get("confidence_score", 0.0),
+                        "missing_fields": final_data.get("missing_fields", []),
+                        "warnings": final_data.get("warnings", []),
+                        "errors": final_data.get("errors", []),
+                        "metadata": final_data.get("metadata", {})
+                    }
+                }
+                yield f"data: {json.dumps(response_payload)}\n\n"
+                
+        except Exception as e:
+            logger.error(f"Error in AI pipeline SSE: {e}")
+            yield f"data: {json.dumps({'status': 'Failed', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 class CopilotMessage(BaseModel):
     role: str

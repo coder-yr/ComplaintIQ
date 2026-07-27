@@ -13,11 +13,18 @@ async def risk_assessment_node(state: ComplaintWorkflowState) -> dict:
     data = state.extracted_data or {}
     
     # 1. Rule Validation based on extracted fields
-    severity = str(data.get("severity") or "LOW").upper()
-    priority = str(data.get("priority") or "LOW").upper()
+    sev_obj = data.get("severity")
+    sev_val = sev_obj.get("value") if isinstance(sev_obj, dict) else sev_obj
+    severity = str(sev_val or "LOW").upper()
+    
+    pri_obj = data.get("priority")
+    pri_val = pri_obj.get("value") if isinstance(pri_obj, dict) else pri_obj
+    priority = str(pri_val or "LOW").upper()
     
     # Hybrid Rules
-    desc = str(data.get("description") or "").lower()
+    desc_obj = data.get("description")
+    desc_val = desc_obj.get("value") if isinstance(desc_obj, dict) else desc_obj
+    desc = str(desc_val or "").lower()
     if "death" in desc or "hospital" in desc or "allergy" in desc:
         severity = "SEVERE"
         priority = "CRITICAL"

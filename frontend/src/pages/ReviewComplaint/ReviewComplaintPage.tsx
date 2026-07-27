@@ -14,7 +14,7 @@ import { CopilotSidebar } from '../../features/copilot/CopilotSidebar';
 import { toggleCopilot } from '../../features/copilot/copilotSlice';
 
 export const ReviewComplaintPage: React.FC = () => {
-  const { extractedData, riskData, summary, confidenceScore, missingFields, warnings } = useAppSelector(state => state.aiProcessing);
+  const { extractedData, riskData, summary, confidenceScore, missingFields, warnings } = useAppSelector(state => state.complaintDraft);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { toast } = useToast();

@@ -11,9 +11,9 @@ from app.config.settings import settings
 logger = logging.getLogger(__name__)
 
 class GroqClient:
-    def __init__(self):
-        self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
-        self.primary_model = "gemma2-9b-it"
+    def __init__(self, api_key: str | None = None, default_model: str = "llama-3.3-70b-versatile"):
+        self.client = AsyncGroq(api_key=api_key or settings.GROQ_API_KEY)
+        self.primary_model = default_model
         self.fallback_model = "llama-3.3-70b-versatile"
         self.max_retries = 3
 

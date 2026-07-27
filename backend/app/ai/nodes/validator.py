@@ -16,26 +16,37 @@ async def schema_validation_node(state: ComplaintWorkflowState) -> dict:
     # Business Rules
     mandatory_fields = ["customer_name", "description"]
     for field in mandatory_fields:
-        if not data.get(field):
+        field_obj = data.get(field)
+        val = field_obj.get("value") if isinstance(field_obj, dict) else field_obj
+        if not val:
             missing_fields.append(field)
             warnings.append(f"Mandatory field '{field}' is missing.")
             
     # Date validation
-    date_str = data.get("incident_date")
+    date_str_obj = data.get("incident_date")
+    date_str = date_str_obj.get("value") if isinstance(date_str_obj, dict) else date_str_obj
     if date_str:
         try:
             datetime.datetime.strptime(date_str, "%Y-%m-%d")
         except ValueError:
             warnings.append(f"Incident date '{date_str}' is not in YYYY-MM-DD format.")
-            data["incident_date"] = None
+            if isinstance(date_str_obj, dict):
+                data["incident_date"]["value"] = None
+            else:
+                data["incident_date"] = None
             
     # Confidence Score calculation
-    total_fields = 7
-    found_fields = sum(1 for v in data.values() if v is not None and str(v).strip() != "")
-    confidence_score = round(found_fields / total_fields, 2) if total_fields > 0 else 0.0
+    total_fields = 12
+    found_fields = sum(1 for v in data.values() if isinstance(v, dict) and v.get("value") is not None and str(v.get("value")).strip() != "")
+    
+    # Calculate average confidence of extracted fields
+    valid_confidences = [v.get("confidence", 0) for v in data.values() if isinstance(v, dict) and v.get("value") is not None and str(v.get("value")).strip() != ""]
+    confidence_score = sum(valid_confidences) / len(valid_confidences) / 100.0 if valid_confidences else 0.0
     
     # Check for empty description
-    if not data.get("description"):
+    desc_obj = data.get("description")
+    desc_val = desc_obj.get("value") if isinstance(desc_obj, dict) else desc_obj
+    if not desc_val:
         errors.append("Validation Error: Description cannot be completely empty.")
         return {
             "validation_status": False,

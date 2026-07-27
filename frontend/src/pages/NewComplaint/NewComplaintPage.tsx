@@ -1,130 +1,106 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../hooks/store';
-import { analyzeDocument, resetAIState } from '../../features/ai/aiProcessingSlice';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { Textarea } from '../../components/ui/textarea';
+import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '../../store';
+import ComplaintForm from './components/ComplaintForm';
+import { AIValidationPanel } from './components/AIValidationPanel';
+import { AISummaryCard } from './components/AISummaryCard';
+import { ExtractionTimeline } from './components/ExtractionTimeline';
+import { startSSEExtraction } from '../../features/ai/aiExtractionSlice';
 import { Button } from '../../components/ui/button';
-import { Upload, FileText, CheckCircle2, Circle } from 'lucide-react';
-import { Progress } from '../../components/ui/progress';
+import { Textarea } from '../../components/ui/textarea';
+import { UploadCloud, FileText, Send, Sparkles } from 'lucide-react';
+import { CopilotSidebar } from '../../features/copilot/CopilotSidebar';
 
-export const NewComplaintPage: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const [text, setText] = useState('');
-  const { isProcessing, error, summary } = useAppSelector((state) => state.aiProcessing);
+const LogCustomerComplaint: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const [inputText, setInputText] = useState('');
   
-  const [progressStep, setProgressStep] = useState(0);
+  const { isProcessing } = useSelector((state: RootState) => state.aiExtraction);
 
-  const steps = [
-    'Uploading Complaint',
-    'Cleaning Text',
-    'Extracting Fields',
-    'Validating Data',
-    'Assessing Risk',
-    'Generating Summary',
-    'Preparing Copilot',
-    'Done'
-  ];
-
-  useEffect(() => {
-    dispatch(resetAIState());
-  }, [dispatch]);
-
-  // Simulate progress steps if processing
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (isProcessing) {
-      setProgressStep(0);
-      interval = setInterval(() => {
-        setProgressStep((prev) => {
-          if (prev < steps.length - 2) return prev + 1;
-          return prev;
-        });
-      }, 800); // Fake step duration
-    } else if (summary && !error) {
-      setProgressStep(steps.length - 1);
-      setTimeout(() => {
-        navigate('/complaints/review');
-      }, 500);
-    }
-    return () => clearInterval(interval);
-  }, [isProcessing, summary, error, navigate]);
-
-  const handleAnalyze = () => {
-    if (text.trim().length === 0) return;
-    dispatch(analyzeDocument(text));
+  const handleStartExtraction = () => {
+    if (!inputText.trim()) return;
+    dispatch(startSSEExtraction(inputText));
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Ingest New Complaint</h1>
+    <div className="min-h-screen bg-gray-50 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Log Customer Complaint</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            Intelligent workspace for capturing, validating, and risk-assessing pharmaceutical complaints.
+          </p>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Source Document</CardTitle>
-          <CardDescription>Upload a complaint PDF or paste the raw text.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="text" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="text"><FileText className="mr-2 h-4 w-4" /> Paste Text</TabsTrigger>
-              <TabsTrigger value="pdf" disabled><Upload className="mr-2 h-4 w-4" /> Upload PDF (Coming Soon)</TabsTrigger>
-            </TabsList>
-            <TabsContent value="text" className="space-y-4 pt-4">
-              <Textarea 
-                placeholder="Paste the customer complaint email or text here..." 
-                className="min-h-[200px]"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                disabled={isProcessing}
-              />
-              <Button onClick={handleAnalyze} disabled={isProcessing || !text.trim()} className="w-full bg-blue-600 hover:bg-blue-700">
-                {isProcessing ? 'Analyzing...' : 'Analyze with AI'}
-              </Button>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+        {/* 70/30 Split Layout */}
+        <div className="flex flex-col lg:flex-row gap-8">
+          
+          {/* Left Panel (70%) - Workspace */}
+          <div className="w-full lg:w-7/12 xl:w-8/12 space-y-6">
+            <AIValidationPanel />
+            <ComplaintForm />
+            <AISummaryCard />
+          </div>
 
-      {isProcessing && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="flex justify-between text-sm font-medium text-gray-700">
-                <span>AI Pipeline Progress</span>
-                <span>{Math.round(((progressStep + 1) / steps.length) * 100)}%</span>
-              </div>
-              <Progress value={((progressStep + 1) / steps.length) * 100} className="w-full" />
+          {/* Right Panel (30%) - Sticky AI Assistant */}
+          <div className="w-full lg:w-5/12 xl:w-4/12">
+            <div className="sticky top-8 space-y-6">
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-sm text-gray-600">
-                {steps.map((step, idx) => (
-                  <div key={idx} className="flex items-center space-x-2">
-                    {idx < progressStep ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    ) : idx === progressStep ? (
-                      <Circle className="h-4 w-4 text-blue-500 animate-pulse fill-blue-500" />
-                    ) : (
-                      <Circle className="h-4 w-4 text-gray-300" />
-                    )}
-                    <span className={idx === progressStep ? 'font-medium text-gray-900' : ''}>{step}</span>
+              {/* Input Area */}
+              <div className="bg-white rounded-xl border p-5 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-blue-600" />
+                  AI Extraction
+                </h3>
+                <Textarea 
+                  placeholder="Paste complaint text here..."
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  className="min-h-[120px] mb-3"
+                  disabled={isProcessing}
+                />
+                <Button 
+                  onClick={handleStartExtraction} 
+                  disabled={isProcessing || !inputText.trim()}
+                  className="w-full"
+                >
+                  {isProcessing ? 'Processing...' : 'Extract Fields'}
+                </Button>
+                
+                <div className="mt-4 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg p-4 cursor-not-allowed bg-gray-50">
+                  <div className="text-center">
+                    <UploadCloud className="mx-auto h-6 w-6 text-gray-400" />
+                    <span className="mt-2 block text-xs font-medium text-gray-500">
+                      File Drop (Coming Soon)
+                    </span>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {error && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6 text-red-600">
-            <p className="font-semibold">Analysis Failed</p>
-            <p className="text-sm">{error}</p>
-          </CardContent>
-        </Card>
-      )}
+              {/* Timeline */}
+              <ExtractionTimeline />
+
+              {/* Embed Copilot inside the layout instead of a Drawer (if CopilotSidebar supports it, else we render standard UI) */}
+              <div className="bg-white rounded-xl border shadow-sm overflow-hidden h-[400px] flex flex-col">
+                <div className="p-4 border-b bg-gray-50">
+                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-purple-600" />
+                    QA Copilot
+                   </h3>
+                </div>
+                <div className="flex-1 overflow-hidden relative">
+                   <CopilotSidebar forceInline={true} />
+                </div>
+              </div>
+
+            </div>
+          </div>
+          
+        </div>
+      </div>
     </div>
   );
 };
+
+export default LogCustomerComplaint;

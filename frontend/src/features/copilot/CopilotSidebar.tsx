@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { X, Send } from 'lucide-react';
 
-export const CopilotSidebar: React.FC = () => {
+export const CopilotSidebar: React.FC<{ forceInline?: boolean }> = ({ forceInline = false }) => {
   const { isOpen, messages, isTyping } = useAppSelector(state => state.copilot);
   const dispatch = useAppDispatch();
   const [input, setInput] = useState('');
@@ -20,7 +20,7 @@ export const CopilotSidebar: React.FC = () => {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  if (!isOpen) return null;
+  if (!isOpen && !forceInline) return null;
 
   const handleSend = () => {
     if (!input.trim() || isTyping) return;
@@ -29,14 +29,20 @@ export const CopilotSidebar: React.FC = () => {
     setInput('');
   };
 
+  const containerClasses = forceInline 
+    ? "flex flex-col h-full bg-white w-full"
+    : "absolute top-4 right-4 w-96 h-[calc(100vh-8rem)] shadow-2xl flex flex-col z-50 rounded-xl border bg-white";
+
   return (
-    <Card className="absolute top-4 right-4 w-96 h-[calc(100vh-8rem)] shadow-2xl flex flex-col z-50">
-      <CardHeader className="flex flex-row items-center justify-between border-b p-4">
-        <CardTitle className="text-lg">AI Copilot</CardTitle>
-        <Button variant="ghost" size="sm" onClick={() => dispatch(toggleCopilot())}>
-          <X className="w-5 h-5" />
-        </Button>
-      </CardHeader>
+    <div className={containerClasses}>
+      {!forceInline && (
+        <div className="flex flex-row items-center justify-between border-b p-4">
+          <h2 className="text-lg font-semibold">AI Copilot</h2>
+          <Button variant="ghost" size="sm" onClick={() => dispatch(toggleCopilot())}>
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+      )}
       
       <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
@@ -78,6 +84,6 @@ export const CopilotSidebar: React.FC = () => {
           </Button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };

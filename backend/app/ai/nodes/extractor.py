@@ -21,8 +21,27 @@ async def field_extraction_node(state: ComplaintWorkflowState) -> dict:
     new_metadata = state.metadata.copy()
     new_metadata["field_extraction"] = metadata
     
-    if metadata.get("error"):
-        errors = state.errors + [f"Extraction Error: {metadata['error']}"]
+    if metadata.get("error") or not data:
+        errors = state.errors + [f"Extraction Error: {metadata.get('error', 'No data returned')}"]
         return {"extracted_data": None, "metadata": new_metadata, "errors": errors}
         
-    return {"extracted_data": data, "metadata": new_metadata}
+    # Inject standard metadata for each field
+    processed_data = {}
+    for key, field_info in data.items():
+        if isinstance(field_info, dict):
+            processed_data[key] = {
+                "value": field_info.get("value"),
+                "confidence": field_info.get("confidence", 0),
+                "source": "AI",
+                "userEdited": False
+            }
+        else:
+            # Fallback if LLM didn't format properly
+            processed_data[key] = {
+                "value": field_info,
+                "confidence": 0,
+                "source": "AI",
+                "userEdited": False
+            }
+            
+    return {"extracted_data": processed_data, "metadata": new_metadata}

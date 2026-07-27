@@ -26,16 +26,16 @@ export const askCopilot = createAsyncThunk(
   'copilot/ask',
   async (message: string, { getState, rejectWithValue }) => {
     const state = getState() as RootState;
-    const { extractedData, riskData, summary, warnings } = state.aiProcessing;
+    const { form, riskAssessment, summary, warnings } = state.complaintDraft;
     
     const complaintContext = {
       summary: summary || "",
-      severity: riskData?.severity || "",
-      priority: riskData?.priority || "",
-      customer_name: extractedData?.customer_name || "",
-      product: extractedData?.product_name || "",
-      batch_number: extractedData?.batch_number || "",
-      risk_reason: riskData?.rationale || "",
+      severity: riskAssessment?.severity || form?.severity?.value || "",
+      priority: riskAssessment?.priority || form?.priority?.value || "",
+      customer_name: form?.customer_name?.value || "",
+      product: form?.product_name?.value || "",
+      batch_number: form?.batch_number?.value || "",
+      risk_reason: riskAssessment?.rationale || "",
       warnings: warnings || []
     };
 

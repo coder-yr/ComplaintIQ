@@ -7,7 +7,7 @@ import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 
 import complaintsReducer from './features/complaints/complaintsSlice';
-import aiProcessingReducer from './features/ai/aiProcessingSlice';
+
 import copilotReducer from './features/copilot/copilotSlice';
 import { RootState, store as realStore } from './store';
 
@@ -23,7 +23,7 @@ export function renderWithProviders(
     store = configureStore({
       reducer: {
         complaints: complaintsReducer,
-        aiProcessing: aiProcessingReducer,
+        
         copilot: copilotReducer,
       },
       preloadedState,
