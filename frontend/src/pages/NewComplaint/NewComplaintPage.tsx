@@ -1,26 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import ComplaintForm from './components/ComplaintForm';
-import { AIValidationPanel } from './components/AIValidationPanel';
-import { AISummaryCard } from './components/AISummaryCard';
-import { ExtractionTimeline } from './components/ExtractionTimeline';
 import { startSSEExtraction } from '../../features/ai/aiExtractionSlice';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
-import { UploadCloud, FileText, Send, Sparkles, AlertCircle } from 'lucide-react';
+import { UploadCloud, FileText, Sparkles } from 'lucide-react';
 import { CopilotSidebar } from '../../features/copilot/CopilotSidebar';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const LogCustomerComplaint: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [inputText, setInputText] = useState('');
   const [isPasting, setIsPasting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { isProcessing } = useSelector((state: RootState) => state.aiExtraction);
 
   const handleStartExtraction = () => {
     if (!inputText.trim()) return;
     dispatch(startSSEExtraction(inputText));
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      if (file.type === 'application/pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+        let fullText = '';
+        
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          fullText += pageText + '\n';
+        }
+        
+        setInputText(fullText);
+        dispatch(startSSEExtraction(fullText));
+      } else if (file.type === 'text/plain') {
+        const text = await file.text();
+        setInputText(text);
+        dispatch(startSSEExtraction(text));
+      } else {
+        alert("Unsupported file type. Please upload a PDF or TXT file.");
+      }
+    } catch (error) {
+      console.error("Error reading file:", error);
+      alert("Failed to read the file.");
+    } finally {
+      // Reset input value so the same file can be uploaded again if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const form = useSelector((state: RootState) => state.complaintDraft.form);
@@ -64,8 +103,19 @@ const LogCustomerComplaint: React.FC = () => {
                   Upload or Paste Complaint
                 </h3>
 
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileUpload} 
+                  accept=".pdf,.txt" 
+                  className="hidden" 
+                />
+
                 <div className="flex gap-2">
-                  <button className="flex-1 flex items-center justify-center gap-2 py-2 px-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 px-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
                     <UploadCloud className="h-4 w-4 text-gray-400" />
                     Upload PDF
                   </button>
