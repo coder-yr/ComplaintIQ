@@ -49,17 +49,14 @@ async def analyze_complaint(request: AnalyzeRequest):
                 "copilot": {"status": "Completed", "message": "Copilot ready."}
             }
             
-            final_data = None
+            final_data = initial_state.model_dump()
             async for output in complaint_pipeline.astream(initial_state.model_dump(), stream_mode="updates"):
                 # output is a dict like {"node_name": {...state_updates...}}
                 for node_name, state_updates in output.items():
+                    final_data.update(state_updates)
                     if node_name in node_status_map:
                         step_info = node_status_map[node_name]
                         yield f"data: {json.dumps(step_info)}\n\n"
-                    
-                    if node_name == "copilot":
-                        # We reached the end, capture the final state
-                        final_data = state_updates
             
             # Send the final payload
             if final_data:
