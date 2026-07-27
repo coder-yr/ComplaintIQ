@@ -8,9 +8,10 @@ import { Textarea } from '../../components/ui/textarea';
 import { UploadCloud, FileText, Sparkles } from 'lucide-react';
 import { CopilotSidebar } from '../../features/copilot/CopilotSidebar';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Set PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 const LogCustomerComplaint: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
