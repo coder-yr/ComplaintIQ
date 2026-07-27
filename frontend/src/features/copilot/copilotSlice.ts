@@ -71,6 +71,13 @@ const copilotSlice = createSlice({
         timestamp: new Date().toISOString()
       });
     },
+    addCopilotMessage(state, action: PayloadAction<string>) {
+      state.messages.push({
+        role: 'assistant',
+        text: action.payload,
+        timestamp: new Date().toISOString()
+      });
+    },
     clearChatHistory(state) {
       state.messages = [];
     }
@@ -101,5 +108,5 @@ const copilotSlice = createSlice({
   }
 });
 
-export const { toggleCopilot, addUserMessage, clearChatHistory } = copilotSlice.actions;
+export const { toggleCopilot, addUserMessage, addCopilotMessage, clearChatHistory } = copilotSlice.actions;
 export default copilotSlice.reducer;

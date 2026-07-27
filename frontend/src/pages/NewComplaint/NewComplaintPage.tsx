@@ -23,6 +23,9 @@ const LogCustomerComplaint: React.FC = () => {
     dispatch(startSSEExtraction(inputText));
   };
 
+  const form = useSelector((state: RootState) => state.complaintDraft.form);
+  const hasExtractedData = Object.values(form).some(f => f.value !== undefined && f.value !== '');
+
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -52,112 +55,104 @@ const LogCustomerComplaint: React.FC = () => {
 
           {/* Right Panel (30%) - AI Assistant */}
           <div className="w-full xl:w-1/3">
-            <div className="sticky top-8 space-y-6 bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col">
+            <div className="sticky top-8 space-y-6">
               
-              {/* Header */}
-              <div className="p-4 border-b flex justify-between items-center bg-white">
-                 <h3 className="font-bold text-gray-900 flex items-center gap-2 text-base">
+              {/* Extraction Card */}
+              <div className="bg-white rounded-xl border shadow-sm p-5 space-y-4">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2 text-base border-b pb-3">
                   <Sparkles className="h-5 w-5 text-blue-600" />
-                  AI Complaint Intake Assistant
-                 </h3>
-                 <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase">BETA</span>
-              </div>
+                  Upload or Paste Complaint
+                </h3>
 
-              <div className="p-5 flex-1 flex flex-col space-y-5">
-                {/* Upload Area */}
-                <div className="border border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors cursor-pointer bg-gray-50/50">
-                   <UploadCloud className="h-6 w-6 text-gray-400 mb-2" />
-                   <p className="text-sm font-medium text-gray-700">Drag & drop complaint document here</p>
-                   <p className="text-sm text-blue-600 font-medium mt-1 hover:underline">or click to browse</p>
+                <div className="flex gap-2">
+                  <button className="flex-1 flex items-center justify-center gap-2 py-2 px-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <UploadCloud className="h-4 w-4 text-gray-400" />
+                    Upload PDF
+                  </button>
+                  <button 
+                    className="flex-1 flex items-center justify-center gap-2 py-2 px-3 border border-blue-200 rounded-md shadow-sm bg-blue-50 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                    onClick={() => {
+                      setIsPasting(true);
+                      const ta = document.getElementById('complaint-textarea');
+                      if (ta) ta.focus();
+                    }}
+                  >
+                    <FileText className="h-4 w-4 text-blue-500" />
+                    Paste Text
+                  </button>
                 </div>
 
-                <div className="flex items-center">
-                  <div className="flex-1 border-t border-gray-200"></div>
-                  <span className="px-3 text-xs text-gray-400 font-medium uppercase">OR</span>
-                  <div className="flex-1 border-t border-gray-200"></div>
-                </div>
-
-                {/* Paste Area */}
                 <div className="space-y-2">
-                  {!isPasting ? (
-                    <button 
-                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
-                      onClick={() => setIsPasting(true)}
-                    >
-                      <FileText className="h-4 w-4 text-gray-400" />
-                      Paste Complaint Text / Email
-                    </button>
-                  ) : (
-                    <div className="space-y-2 border border-blue-200 rounded-md p-2 bg-blue-50/30">
-                      <Textarea 
-                        placeholder="Paste raw complaint text here..."
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        className="min-h-[120px] text-sm bg-white"
-                        disabled={isProcessing}
-                        autoFocus
-                      />
-                      <div className="flex gap-2">
-                        <Button 
-                          onClick={() => {
-                            if (inputText.trim()) {
-                               dispatch(startSSEExtraction(inputText));
-                               setIsPasting(false);
-                            }
-                          }} 
-                          disabled={isProcessing || !inputText.trim()}
-                          className="flex-1 bg-blue-600 hover:bg-blue-700"
-                          size="sm"
-                        >
-                          Extract Details
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => setIsPasting(false)}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  <div className="bg-green-50 border border-green-200 rounded-md p-3 flex gap-2 items-start text-xs text-green-700">
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium">Supported formats: PDF, DOCX, TXT, EML</p>
-                      <p>Max file size: 10MB</p>
-                    </div>
-                  </div>
+                  <Textarea 
+                    id="complaint-textarea"
+                    placeholder="Paste customer email or complaint description..."
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    className="min-h-[120px] text-sm bg-gray-50 focus:bg-white"
+                    disabled={isProcessing}
+                  />
+                  <Button 
+                    onClick={() => {
+                      if (inputText.trim()) {
+                         dispatch(startSSEExtraction(inputText));
+                         setIsPasting(false);
+                      }
+                    }} 
+                    disabled={isProcessing || !inputText.trim()}
+                    className="w-full bg-blue-600 hover:bg-blue-700 font-semibold"
+                  >
+                    Analyze with AI
+                  </Button>
                 </div>
-
-                <hr className="border-gray-100" />
 
                 {/* Extraction Progress */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Extraction Progress</h4>
+                <div className="pt-2">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Extraction Progress</h4>
                   {isProcessing ? (
                     <>
-                      <div className="flex items-center justify-between text-xs font-medium text-gray-600">
-                         <div className="h-2.5 w-16 bg-blue-600 rounded-full animate-pulse"></div>
-                         <span>Processing...</span>
+                      <div className="flex items-center justify-between text-xs font-medium text-gray-600 mb-1">
+                         <div className="h-2.5 w-full bg-gray-200 rounded-full overflow-hidden">
+                           <div className="h-full bg-blue-600 w-1/2 animate-pulse"></div>
+                         </div>
                       </div>
-                      <p className="text-xs text-gray-600 leading-relaxed">
-                        Analyzing document content and extracting key details...<br/>Please wait, this may take a few moments.
-                      </p>
+                      <p className="text-xs text-gray-600">Analyzing document...</p>
                     </>
                   ) : (
-                    <p className="text-xs text-gray-500 italic">Waiting for document or text input.</p>
+                    <p className="text-xs text-gray-400 italic">Waiting for document or text input.</p>
                   )}
                 </div>
+              </div>
 
-                <hr className="border-gray-100" />
+              {/* Copilot Divider */}
+              <div className="flex items-center">
+                <div className="flex-1 border-t border-gray-300"></div>
+                <span className="px-3 text-xs font-bold text-gray-400 uppercase tracking-widest">QA Copilot</span>
+                <div className="flex-1 border-t border-gray-300"></div>
+              </div>
 
-                {/* AI Assistant (Copilot wrapper) */}
-                <div className="flex-1 flex flex-col">
-                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">AI Assistant</h4>
-                  <div className="flex-1 bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col relative h-[300px]">
-                     {/* We use forceInline to strip internal headers inside CopilotSidebar */}
-                     <CopilotSidebar forceInline={true} />
-                  </div>
+              {/* AI Assistant (Copilot wrapper) */}
+              <div className={`bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col transition-opacity duration-300 ${!hasExtractedData ? 'opacity-60 grayscale-[50%]' : ''}`}>
+                <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                   <h3 className="font-bold text-gray-900 flex items-center gap-2 text-base">
+                    <Sparkles className="h-5 w-5 text-purple-600" />
+                    AI Assistant
+                   </h3>
                 </div>
 
+                <div className="flex flex-col relative h-[350px]">
+                  {!hasExtractedData ? (
+                    <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-[2px] flex items-center justify-center p-6 text-center">
+                      <div className="bg-white border rounded-lg p-4 shadow-sm max-w-[250px]">
+                        <p className="text-sm font-medium text-gray-700">
+                          Analyze a complaint first to enable QA Copilot.
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+                  <CopilotSidebar forceInline={true} />
+                </div>
               </div>
+
             </div>
           </div>
           

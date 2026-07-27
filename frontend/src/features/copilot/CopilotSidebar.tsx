@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '../../hooks/store';
-import { toggleCopilot, addUserMessage, askCopilot } from './copilotSlice';
+import { toggleCopilot, addUserMessage, askCopilot, addCopilotMessage } from './copilotSlice';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -24,8 +24,19 @@ export const CopilotSidebar: React.FC<{ forceInline?: boolean }> = ({ forceInlin
 
   const handleSend = () => {
     if (!input.trim() || isTyping) return;
+    
+    const isLikelyRawComplaint = input.length > 100 && !input.includes('?');
+    
     dispatch(addUserMessage(input));
-    dispatch(askCopilot(input));
+    
+    if (isLikelyRawComplaint) {
+      setTimeout(() => {
+        dispatch(addCopilotMessage("It looks like you've pasted a raw complaint. Please use the Complaint Extraction section above and click Analyze with AI. After extraction I can answer questions."));
+      }, 500);
+    } else {
+      dispatch(askCopilot(input));
+    }
+    
     setInput('');
   };
 
@@ -82,7 +93,7 @@ export const CopilotSidebar: React.FC<{ forceInline?: boolean }> = ({ forceInlin
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask me anything about this complaint..."
+            placeholder="Ask questions about the extracted complaint..."
             className="flex-1 border-0 shadow-none focus-visible:ring-0 px-2"
             disabled={isTyping}
           />
