@@ -14,6 +14,7 @@ import { CopilotSidebar } from '../../features/copilot/CopilotSidebar';
 const LogCustomerComplaint: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [inputText, setInputText] = useState('');
+  const [isPasting, setIsPasting] = useState(false);
   
   const { isProcessing } = useSelector((state: RootState) => state.aiExtraction);
 
@@ -78,18 +79,44 @@ const LogCustomerComplaint: React.FC = () => {
 
                 {/* Paste Area */}
                 <div className="space-y-2">
-                  <button 
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
-                    onClick={() => {
-                      const text = window.prompt("Paste Complaint Text / Email below:");
-                      if (text) {
-                         dispatch(startSSEExtraction(text));
-                      }
-                    }}
-                  >
-                    <FileText className="h-4 w-4 text-gray-400" />
-                    Paste Complaint Text / Email
-                  </button>
+                  {!isPasting ? (
+                    <button 
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+                      onClick={() => setIsPasting(true)}
+                    >
+                      <FileText className="h-4 w-4 text-gray-400" />
+                      Paste Complaint Text / Email
+                    </button>
+                  ) : (
+                    <div className="space-y-2 border border-blue-200 rounded-md p-2 bg-blue-50/30">
+                      <Textarea 
+                        placeholder="Paste raw complaint text here..."
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        className="min-h-[120px] text-sm bg-white"
+                        disabled={isProcessing}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={() => {
+                            if (inputText.trim()) {
+                               dispatch(startSSEExtraction(inputText));
+                               setIsPasting(false);
+                            }
+                          }} 
+                          disabled={isProcessing || !inputText.trim()}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700"
+                          size="sm"
+                        >
+                          Extract Details
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setIsPasting(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <div className="bg-green-50 border border-green-200 rounded-md p-3 flex gap-2 items-start text-xs text-green-700">
                     <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                     <div>
