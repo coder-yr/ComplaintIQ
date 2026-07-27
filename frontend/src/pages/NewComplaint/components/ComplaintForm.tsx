@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store';
-import { updateField } from '../../../features/complaints/complaintSlice';
+import { updateField, saveComplaint, resetComplaint } from '../../../features/complaints/complaintSlice';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
@@ -10,6 +10,7 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 const ComplaintForm: React.FC = () => {
   const dispatch = useDispatch();
   const form = useSelector((state: RootState) => state.complaintDraft.form);
+  const saveStatus = useSelector((state: RootState) => state.complaintDraft.saveStatus);
   const isProcessing = useSelector((state: RootState) => state.aiExtraction.isProcessing);
 
   const handleInputChange = (field: keyof typeof form, value: string) => {
@@ -118,13 +119,30 @@ const ComplaintForm: React.FC = () => {
       </section>
 
       <div className="flex items-center justify-between pt-2">
-        <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 font-medium text-sm flex items-center gap-2">
+        <button 
+          onClick={() => {
+            if (window.confirm("Are you sure you want to reset this form? All unsaved data will be lost.")) {
+              dispatch(resetComplaint());
+            }
+          }}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 font-medium text-sm flex items-center gap-2"
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
           Reset Form
         </button>
-        <button className="px-6 py-2 bg-blue-600 rounded-lg text-white font-medium hover:bg-blue-700 text-sm flex items-center gap-2">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-          Save Complaint
+        <button 
+          onClick={() => dispatch(saveComplaint() as any)}
+          disabled={saveStatus === 'loading'}
+          className="px-6 py-2 bg-blue-600 rounded-lg text-white font-medium hover:bg-blue-700 text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          {saveStatus === 'loading' ? (
+            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : saveStatus === 'success' ? (
+            <CheckCircle2 className="w-4 h-4" />
+          ) : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+          )}
+          {saveStatus === 'loading' ? 'Saving...' : saveStatus === 'success' ? 'Saved!' : 'Save Complaint'}
         </button>
       </div>
 

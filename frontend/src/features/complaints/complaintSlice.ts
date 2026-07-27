@@ -1,5 +1,7 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { startSSEExtraction } from '../ai/aiExtractionSlice';
+import api from '../../services/api';
+import { RootState } from '../../store';
 
 export interface FieldMetadata {
   value: any;
@@ -41,6 +43,8 @@ interface ComplaintState {
   warnings: string[];
   errors: string[];
   metadataInfo: any | null;
+  saveStatus: 'idle' | 'loading' | 'success' | 'error';
+  saveError: string | null;
 }
 
 const getInitialForm = (): ComplaintFormState => ({
@@ -68,7 +72,9 @@ const initialState: ComplaintState = {
   missingFields: [],
   warnings: [],
   errors: [],
-  metadataInfo: null
+  metadataInfo: null,
+  saveStatus: 'idle',
+  saveError: null
 };
 
 // Draft Auto-Save Helpers
@@ -84,6 +90,40 @@ export const clearDraftFromLocal = () => {
   localStorage.removeItem(DRAFT_KEY);
 };
 
+export const saveComplaint = createAsyncThunk(
+  'complaint/save',
+  async (_, { getState, rejectWithValue }) => {
+    const state = getState() as RootState;
+    const form = state.complaintDraft.form;
+    
+    // Map form state to backend API request format
+    const payload = {
+      source: form.complaint_source.value || "Unknown",
+      customer_name: form.customer_name.value || "Unknown",
+      product_name: form.product_name.value || "Unknown",
+      product_strength: form.product_strength.value,
+      batch_number: form.batch_number.value,
+      manufacturing_date: form.manufacturing_date.value,
+      expiry_date: form.expiry_date.value,
+      quantity_affected: form.quantity_affected.value ? parseInt(form.quantity_affected.value) : undefined,
+      complaint_type: form.complaint_type.value || "General",
+      complaint_date: form.complaint_date.value || new Date().toISOString().split('T')[0],
+      incident_date: form.incident_date.value,
+      description: form.description.value || "No description provided.",
+      severity: form.severity.value || "LOW",
+      priority: form.priority.value || "LOW",
+      status: "OPEN"
+    };
+
+    try {
+      const response = await api.post('/complaints', payload);
+      return response.data;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.detail || "Failed to save complaint");
+    }
+  }
+);
+
 const complaintSlice = createSlice({
   name: 'complaint',
   initialState: loadDraftFromLocal() || initialState,
@@ -94,6 +134,7 @@ const complaintSlice = createSlice({
         state.form[field].value = value;
         state.form[field].userEdited = true;
         state.form[field].source = 'Manual';
+        state.saveStatus = 'idle';
         saveDraftToLocal(state);
       }
     },
@@ -126,8 +167,23 @@ const complaintSlice = createSlice({
       state.warnings = payload.warnings || [];
       state.errors = payload.errors || [];
       state.metadataInfo = payload.metadata || {};
+      state.saveStatus = 'idle';
       
       saveDraftToLocal(state);
+    });
+    
+    // Save Complaint Cases
+    builder.addCase(saveComplaint.pending, (state) => {
+      state.saveStatus = 'loading';
+      state.saveError = null;
+    });
+    builder.addCase(saveComplaint.fulfilled, (state) => {
+      state.saveStatus = 'success';
+      clearDraftFromLocal();
+    });
+    builder.addCase(saveComplaint.rejected, (state, action) => {
+      state.saveStatus = 'error';
+      state.saveError = action.payload as string;
     });
   }
 });
