@@ -5,13 +5,15 @@ import { updateField, saveComplaint, resetComplaint } from '../../../features/co
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, RefreshCw, Save } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ComplaintForm: React.FC = () => {
   const dispatch = useDispatch();
   const form = useSelector((state: RootState) => state.complaintDraft.form);
   const saveStatus = useSelector((state: RootState) => state.complaintDraft.saveStatus);
   const isProcessing = useSelector((state: RootState) => state.aiExtraction.isProcessing);
+  const hasData = Object.values(form).some(f => f.value !== undefined && f.value !== '');
 
   const handleInputChange = (field: keyof typeof form, value: string) => {
     dispatch(updateField({ field, value }));
@@ -24,128 +26,160 @@ const ComplaintForm: React.FC = () => {
   ) => {
     const fieldData = form[fieldKey];
     const isAiExtracted = fieldData.source === 'AI' && !fieldData.userEdited;
+    const hasValue = Boolean(fieldData.value);
     
     return (
-      <div className="space-y-1 mb-4 relative">
-        <Label className="text-sm font-semibold text-gray-700 flex items-center justify-between">
+      <div className="space-y-2 mb-2 relative">
+        <Label className="text-[13px] font-semibold text-slate-700 flex items-center justify-between">
           {label}
           {isAiExtracted && (
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1 ${
+            <motion.span 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.25 }}
+              className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${
               fieldData.confidence > 80 ? 'bg-green-100 text-green-700' :
-              fieldData.confidence > 50 ? 'bg-yellow-100 text-yellow-700' :
+              fieldData.confidence > 50 ? 'bg-amber-100 text-amber-700' :
               'bg-red-100 text-red-700'
             }`}>
-              AI {fieldData.confidence}%
-            </span>
+              AI Conf: {fieldData.confidence}%
+            </motion.span>
           )}
         </Label>
         
-        {isProcessing && !fieldData.value ? (
-          <div className="h-10 w-full animate-pulse bg-gray-50 rounded-md border border-gray-200 flex items-center px-3">
-            <span className="text-sm text-gray-400">Awaiting AI extraction...</span>
-          </div>
-        ) : type === 'textarea' ? (
-          <Textarea 
-            value={fieldData.value || ''}
-            onChange={(e) => handleInputChange(fieldKey, e.target.value)}
-            className={`min-h-[100px] text-gray-700 ${isAiExtracted ? 'border-blue-200 bg-blue-50/30' : ''}`}
-            placeholder="Awaiting AI extraction..."
-          />
-        ) : (
-          <Input 
-            type={type}
-            value={fieldData.value || ''}
-            onChange={(e) => handleInputChange(fieldKey, e.target.value)}
-            className={`text-gray-700 ${isAiExtracted ? 'border-blue-200 bg-blue-50/30' : ''}`}
-            placeholder="Awaiting AI extraction..."
-          />
-        )}
+        <div className="relative">
+          {(!hasValue && (isProcessing || !hasData)) ? (
+            <div className={`w-full rounded-lg bg-gray-100 border border-gray-100 flex items-center px-3 ${type === 'textarea' ? 'h-[100px] items-start py-3' : 'h-11'}`}>
+              <div className="flex space-x-2 items-center w-full">
+                 <div className="h-2 bg-gray-200 rounded-full w-24 animate-pulse"></div>
+                 <span className="text-xs text-gray-400 italic absolute right-3">Awaiting AI extraction...</span>
+              </div>
+            </div>
+          ) : (
+            <AnimatePresence mode="popLayout">
+              <motion.div
+                key={`${fieldKey}-${hasValue ? 'filled' : 'empty'}`}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                {type === 'textarea' ? (
+                  <Textarea 
+                    value={fieldData.value || ''}
+                    onChange={(e) => handleInputChange(fieldKey, e.target.value)}
+                    className={`min-h-[100px] text-sm text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500/20 transition-all ${isAiExtracted ? 'border-blue-200 bg-blue-50/20' : 'bg-white'}`}
+                  />
+                ) : (
+                  <Input 
+                    type={type}
+                    value={fieldData.value || ''}
+                    onChange={(e) => handleInputChange(fieldKey, e.target.value)}
+                    className={`h-11 text-sm text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500/20 transition-all ${isAiExtracted ? 'border-blue-200 bg-blue-50/20' : 'bg-white'}`}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          )}
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="space-y-6 pb-10">
-      
-      {/* 1. Origin & Customer Details */}
-      <section className="bg-white p-6 rounded-xl border shadow-sm">
-        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-5 pb-2 border-b">
-          1. Origin & Customer Details
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-          {renderField('Complaint Source', 'complaint_source')}
-          {renderField('Customer Name', 'customer_name')}
-        </div>
-      </section>
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="px-8 py-6 border-b border-gray-100 bg-white">
+        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Customer Complaint</h2>
+        <p className="text-sm text-gray-500 mt-1">Review and verify the extracted complaint details before saving.</p>
+      </div>
 
-      {/* 2. Product & Batch Identification */}
-      <section className="bg-white p-6 rounded-xl border shadow-sm">
-        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-5 pb-2 border-b">
-          2. Product & Batch Identification
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-          {renderField('Product Name', 'product_name')}
-          {renderField('Product Strength/Grade', 'product_strength')}
-          {renderField('Batch/Lot Number', 'batch_number')}
-          {renderField('Manufacturing Date', 'manufacturing_date', 'date')}
-          {renderField('Expiry Date', 'expiry_date', 'date')}
-          {renderField('Quantity Affected', 'quantity_affected')}
-        </div>
-      </section>
+      <div className="p-8 space-y-10">
+        
+        {/* 1. Origin & Customer Details */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">1</span>
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Complaint Origin</h3>
+            <div className="flex-1 border-t border-gray-100 ml-4"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            {renderField('Complaint Source', 'complaint_source')}
+            {renderField('Customer Name', 'customer_name')}
+          </div>
+        </section>
 
-      {/* 3. Complaint Details */}
-      <section className="bg-white p-6 rounded-xl border shadow-sm">
-        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-5 pb-2 border-b">
-          3. Complaint Details
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-          {renderField('Complaint Type', 'complaint_type')}
-          {renderField('Complaint Date', 'complaint_date', 'date')}
-        </div>
-        <div className="mt-2">
-          {renderField('Detailed Complaint Description', 'description', 'textarea')}
-        </div>
-      </section>
+        {/* 2. Product & Batch Identification */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">2</span>
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Product Information</h3>
+            <div className="flex-1 border-t border-gray-100 ml-4"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            {renderField('Product Name', 'product_name')}
+            {renderField('Strength / Grade', 'product_strength')}
+            {renderField('Batch / Lot Number', 'batch_number')}
+            {renderField('Quantity Affected', 'quantity_affected')}
+            {renderField('Manufacturing Date', 'manufacturing_date', 'date')}
+            {renderField('Expiry Date', 'expiry_date', 'date')}
+          </div>
+        </section>
 
-      {/* 4. Initial Assessment */}
-      <section className="bg-white p-6 rounded-xl border shadow-sm mb-6">
-        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-5 pb-2 border-b">
-          4. Initial Assessment & Priority
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-          {renderField('Initial Severity', 'severity')}
-          {renderField('Priority', 'priority')}
-        </div>
-      </section>
+        {/* 3. Complaint Details */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">3</span>
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Complaint Details</h3>
+            <div className="flex-1 border-t border-gray-100 ml-4"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-4">
+            {renderField('Complaint Type', 'complaint_type')}
+            {renderField('Date Received', 'complaint_date', 'date')}
+          </div>
+          {renderField('Detailed Description', 'description', 'textarea')}
+        </section>
 
-      <div className="flex items-center justify-between pt-2">
+        {/* 4. Initial Assessment */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">4</span>
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Initial Assessment</h3>
+            <div className="flex-1 border-t border-gray-100 ml-4"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            {renderField('Severity Level', 'severity')}
+            {renderField('Priority', 'priority')}
+          </div>
+        </section>
+
+      </div>
+
+      <div className="px-8 py-5 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
         <button 
           onClick={() => {
             if (window.confirm("Are you sure you want to reset this form? All unsaved data will be lost.")) {
               dispatch(resetComplaint());
             }
           }}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 font-medium text-sm flex items-center gap-2"
+          className="px-5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 font-medium text-sm flex items-center gap-2 transition-colors duration-150"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-          Reset Form
+          <RefreshCw className="w-4 h-4" />
+          Reset
         </button>
         <button 
           onClick={() => dispatch(saveComplaint() as any)}
           disabled={saveStatus === 'loading'}
-          className="px-6 py-2 bg-blue-600 rounded-lg text-white font-medium hover:bg-blue-700 text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          className="px-8 py-2.5 bg-blue-600 rounded-xl text-white font-semibold hover:bg-blue-700 shadow-sm hover:shadow-md text-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-150"
         >
           {saveStatus === 'loading' ? (
-            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
           ) : saveStatus === 'success' ? (
             <CheckCircle2 className="w-4 h-4" />
           ) : (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+            <Save className="w-4 h-4" />
           )}
-          {saveStatus === 'loading' ? 'Saving...' : saveStatus === 'success' ? 'Saved!' : 'Save Complaint'}
+          {saveStatus === 'loading' ? 'Saving...' : saveStatus === 'success' ? 'Saved' : 'Save Complaint'}
         </button>
       </div>
-
     </div>
   );
 };

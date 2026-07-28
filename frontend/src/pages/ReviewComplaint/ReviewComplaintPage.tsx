@@ -14,7 +14,7 @@ import { CopilotSidebar } from '../../features/copilot/CopilotSidebar';
 import { toggleCopilot } from '../../features/copilot/copilotSlice';
 
 export const ReviewComplaintPage: React.FC = () => {
-  const { extractedData, riskData, summary, confidenceScore, missingFields, warnings } = useAppSelector(state => state.complaintDraft);
+  const { form, riskAssessment, summary, globalConfidenceScore, missingFields, warnings } = useAppSelector(state => state.complaintDraft);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -31,21 +31,21 @@ export const ReviewComplaintPage: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!extractedData && !riskData) {
+    if (!form.customer_name.value && !riskAssessment) {
       navigate('/complaints/new');
       return;
     }
     setFormData({
-      customer_name: extractedData?.customer_name || '',
-      product_name: extractedData?.product_name || '',
-      batch_number: extractedData?.batch_number || '',
-      incident_date: extractedData?.incident_date || '',
-      description: extractedData?.description || '',
-      severity: riskData?.severity || 'LOW',
-      priority: riskData?.priority || 'LOW',
+      customer_name: form.customer_name.value || '',
+      product_name: form.product_name.value || '',
+      batch_number: form.batch_number.value || '',
+      incident_date: form.incident_date.value || '',
+      description: form.description.value || '',
+      severity: riskAssessment?.severity || 'LOW',
+      priority: riskAssessment?.priority || 'LOW',
       status: 'PENDING'
     });
-  }, [extractedData, riskData, navigate]);
+  }, [form, riskAssessment, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -72,10 +72,10 @@ export const ReviewComplaintPage: React.FC = () => {
     if (missingFields.includes(fieldName)) {
       return <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50 ml-2">⚠ Missing</Badge>;
     }
-    if (confidenceScore >= 0.8) {
-      return <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50 ml-2"><CheckCircle className="w-3 h-3 mr-1 inline"/> {Math.round(confidenceScore * 100)}% Confident</Badge>;
+    if (globalConfidenceScore >= 80) {
+      return <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50 ml-2"><CheckCircle className="w-3 h-3 mr-1 inline"/> {Math.round(globalConfidenceScore)}% Confident</Badge>;
     }
-    return <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 ml-2">⚠ {Math.round(confidenceScore * 100)}% Confident</Badge>;
+    return <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 ml-2">⚠ {Math.round(globalConfidenceScore)}% Confident</Badge>;
   };
 
   return (
@@ -162,7 +162,7 @@ export const ReviewComplaintPage: React.FC = () => {
             </div>
             <div>
               <Label>AI Rationale</Label>
-              <p className="mt-1 text-sm text-gray-600 bg-gray-50 p-3 rounded border">{riskData?.rationale}</p>
+              <p className="mt-1 text-sm text-gray-600 bg-gray-50 p-3 rounded border">{riskAssessment?.reasoning}</p>
             </div>
           </CardContent>
         </Card>

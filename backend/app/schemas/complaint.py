@@ -17,6 +17,7 @@ class FieldMetadata(BaseModel):
 class ComplaintBase(BaseModel):
     customer_name: str
     complaint_source: str | None = None
+    product_name: str | None = None
     product_id: uuid.UUID | None = None
     product_strength: str | None = None
     batch_number: str | None = None
@@ -65,6 +66,7 @@ class ComplaintListResponse(BaseModel):
     id: uuid.UUID
     complaint_number: str
     customer_name: str
+    product_name: str | None = None
     incident_date: date | None = None
     severity: Severity
     priority: Priority

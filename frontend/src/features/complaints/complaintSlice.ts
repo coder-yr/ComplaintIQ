@@ -97,18 +97,23 @@ export const saveComplaint = createAsyncThunk(
     const form = state.complaintDraft.form;
     
     // Map form state to backend API request format
+    const parseDate = (d: string | null) => {
+      if (!d || d.trim() === '') return undefined;
+      return d;
+    };
+
     const payload = {
-      source: form.complaint_source.value || "Unknown",
+      complaint_source: form.complaint_source.value || "Unknown",
       customer_name: form.customer_name.value || "Unknown",
       product_name: form.product_name.value || "Unknown",
       product_strength: form.product_strength.value,
       batch_number: form.batch_number.value,
-      manufacturing_date: form.manufacturing_date.value,
-      expiry_date: form.expiry_date.value,
-      quantity_affected: form.quantity_affected.value ? parseInt(form.quantity_affected.value) : undefined,
+      manufacturing_date: parseDate(form.manufacturing_date.value),
+      expiry_date: parseDate(form.expiry_date.value),
+      quantity_affected: form.quantity_affected.value ? String(form.quantity_affected.value) : undefined,
       complaint_type: form.complaint_type.value || "General",
-      complaint_date: form.complaint_date.value || new Date().toISOString().split('T')[0],
-      incident_date: form.incident_date.value,
+      complaint_date: parseDate(form.complaint_date.value) || new Date().toISOString().split('T')[0],
+      incident_date: parseDate(form.incident_date.value),
       description: form.description.value || "No description provided.",
       severity: form.severity.value || "LOW",
       priority: form.priority.value || "LOW",

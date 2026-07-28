@@ -18,6 +18,7 @@ class Complaint(Base, TimestampMixin, AuditMixin, SoftDeleteMixin):
     complaint_number: Mapped[str] = mapped_column(String, unique=True, index=True)
     complaint_source: Mapped[str | None] = mapped_column(String, nullable=True)
     customer_name: Mapped[str] = mapped_column(String, index=True)
+    product_name: Mapped[str | None] = mapped_column(String, nullable=True)
     product_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=True)
     product_strength: Mapped[str | None] = mapped_column(String, nullable=True)
     batch_number: Mapped[str | None] = mapped_column(String, nullable=True)

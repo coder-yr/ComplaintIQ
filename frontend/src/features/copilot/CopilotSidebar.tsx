@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '../../hooks/store';
 import { toggleCopilot, addUserMessage, askCopilot, addCopilotMessage } from './copilotSlice';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { X, Send } from 'lucide-react';
@@ -57,15 +57,37 @@ export const CopilotSidebar: React.FC<{ forceInline?: boolean }> = ({ forceInlin
       
       <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
-          <div className="bg-[#eff4fe] rounded-lg p-4 flex gap-3 text-sm text-[#3b5998]">
-            <div className="mt-0.5">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1H1a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2zM9.5 13a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"></path>
-              </svg>
+          <div className="flex flex-col gap-4 pt-2">
+            <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
+              <h4 className="text-sm font-bold text-gray-900 mb-1">Hello! I'm your QA Copilot.</h4>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Ask anything about this complaint.
+              </p>
             </div>
-            <p className="leading-relaxed">
-              Upload a complaint document or paste text above.<br/>I will automatically extract the details and populate the form for you.
-            </p>
+            
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">Suggested Prompts</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "Summarize Complaint",
+                  "Batch Number",
+                  "Risk Level",
+                  "Missing Fields",
+                  "Escalation Required"
+                ].map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => {
+                      setInput(prompt);
+                      // handleSend could be called here or user could just edit it
+                    }}
+                    className="text-xs font-medium bg-gray-50 hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full border border-gray-200 transition-colors"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
         
