@@ -6,7 +6,7 @@ import { FileText, AlertTriangle, Activity, ShieldAlert, CheckCircle2, Info } fr
 
 export const PostExtractionCards: React.FC = () => {
   const { isProcessing, timeline } = useSelector((state: RootState) => state.aiExtraction);
-  const { form, riskAssessment, summary, warnings, globalConfidenceScore } = useSelector((state: RootState) => state.complaintDraft);
+  const { form, riskAssessment, summary, warnings, missingFields, errors, globalConfidenceScore } = useSelector((state: RootState) => state.complaintDraft);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Determine if extraction just finished
@@ -140,31 +140,33 @@ export const PostExtractionCards: React.FC = () => {
               <h3 className="font-semibold text-sm text-slate-800">Validation Checks</h3>
             </div>
             <div className="p-4">
-              {warnings && warnings.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {warnings.map((warning: string, i: number) => (
-                    <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      {warning}
+              <div className="flex flex-wrap gap-2">
+                {(!missingFields || missingFields.length === 0) && (!warnings || warnings.length === 0) ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    All Checks Passed
+                  </span>
+                ) : (
+                  <>
+                    {missingFields && missingFields.map((field: string, i: number) => (
+                      <span key={`missing-${i}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        Missing {field}
+                      </span>
+                    ))}
+                    {warnings && warnings.map((warning: string, i: number) => (
+                      <span key={`warning-${i}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        {warning}
+                      </span>
+                    ))}
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                      <Info className="w-3.5 h-3.5" />
+                      Manual Review Required
                     </span>
-                  ))}
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                    <Info className="w-3.5 h-3.5" />
-                    Manual Review Required
-                  </span>
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    Missing Batch Information
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                    <Info className="w-3.5 h-3.5" />
-                    Manual Review Required
-                  </span>
-                </div>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           </motion.div>
         </div>

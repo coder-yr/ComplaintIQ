@@ -25,8 +25,9 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ complaints }) 
     months.forEach(m => counts[m] = 0);
     
     complaints.forEach(c => {
-      if (c.incident_date) {
-        const date = new Date(c.incident_date);
+      const dateStr = c.complaint_date || (c as any).created_at || c.incident_date;
+      if (dateStr) {
+        const date = new Date(dateStr);
         const monthName = months[date.getMonth()];
         counts[monthName] = (counts[monthName] || 0) + 1;
       }

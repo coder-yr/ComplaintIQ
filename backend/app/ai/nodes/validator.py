@@ -13,14 +13,27 @@ async def schema_validation_node(state: ComplaintWorkflowState) -> dict:
     warnings = []
     errors = state.errors.copy()
     
-    # Business Rules
-    mandatory_fields = ["customer_name", "description"]
-    for field in mandatory_fields:
+    # Business Rules for missing/unknown fields
+    important_fields = [
+        "customer_name", "description", "product_name", 
+        "batch_number", "manufacturing_date", "expiry_date"
+    ]
+    
+    unknown_keywords = ["unknown", "n/a", "unavailable", "none", "not provided"]
+    
+    for field in important_fields:
         field_obj = data.get(field)
         val = field_obj.get("value") if isinstance(field_obj, dict) else field_obj
-        if not val:
+        
+        # Check if missing or string value indicates it's unknown
+        is_missing = not val
+        if isinstance(val, str) and val.lower().strip() in unknown_keywords:
+            is_missing = True
+            
+        if is_missing:
             missing_fields.append(field)
-            warnings.append(f"Mandatory field '{field}' is missing.")
+            if field in ["customer_name", "description", "product_name"]:
+                warnings.append(f"Mandatory field '{field}' is missing.")
             
     # Date validation
     date_str_obj = data.get("incident_date")

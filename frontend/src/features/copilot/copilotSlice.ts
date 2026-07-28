@@ -36,7 +36,8 @@ export const askCopilot = createAsyncThunk(
       product: form?.product_name?.value || "",
       batch_number: form?.batch_number?.value || "",
       risk_reason: riskAssessment?.rationale || "",
-      warnings: warnings || []
+      warnings: warnings || [],
+      missing_fields: state.complaintDraft.missingFields || []
     };
 
     const recentHistory = state.copilot.messages.slice(-10).map(m => ({
@@ -56,6 +57,8 @@ export const askCopilot = createAsyncThunk(
     }
   }
 );
+
+import { resetComplaint } from '../complaints/complaintSlice';
 
 const copilotSlice = createSlice({
   name: 'copilot',
@@ -84,6 +87,9 @@ const copilotSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(resetComplaint, (state) => {
+        state.messages = [];
+      })
       .addCase(askCopilot.pending, (state) => {
         state.isTyping = true;
         state.error = null;
